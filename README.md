@@ -1,36 +1,147 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Realtime Chat App
+
+A modern real-time chat application built with Next.js 14, Convex, and Clerk.
+
+## Features
+
+- 🔐 Secure authentication with Clerk
+- ⚡ Real-time messaging with Convex
+- 🎨 Modern UI with Tailwind CSS and shadcn/ui
+- 📱 Responsive design
+- 🔄 Automatic user sync between Clerk and Convex
+
+## Tech Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **Authentication**: Clerk
+- **Database & Real-time**: Convex
+- **Styling**: Tailwind CSS
+- **UI Components**: shadcn/ui
+- **Language**: TypeScript
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ installed
+- npm package manager
+
+### Installation
+
+1. Clone the repository and navigate to the project:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd realtime-chat-app
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Environment variables are already configured in `.env.local`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Start the Convex development server (in a separate terminal):
+```bash
+npx convex dev
+```
 
-## Learn More
+5. Start the Next.js development server:
+```bash
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+6. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+realtime-chat-app/
+├── app/
+│   ├── dashboard/          # Protected dashboard page
+│   ├── sign-in/           # Clerk sign-in page
+│   ├── sign-up/           # Clerk sign-up page
+│   ├── layout.tsx         # Root layout with providers
+│   ├── page.tsx           # Landing page
+│   └── providers.tsx      # Clerk + Convex providers
+├── components/
+│   └── ui/                # shadcn/ui components
+├── convex/
+│   ├── schema.ts          # Database schema
+│   ├── users.ts           # User functions
+│   └── _generated/        # Auto-generated Convex types
+├── lib/
+│   └── utils.ts           # Utility functions
+└── middleware.ts          # Clerk middleware for route protection
+```
 
-## Deploy on Vercel
+## Key Features Implemented
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Authentication
+- Landing page with sign-in/sign-up buttons
+- Protected dashboard route
+- Automatic user profile sync to Convex database
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Database Schema
+- Users table with fields:
+  - clerkId (indexed)
+  - name
+  - email
+  - imageUrl
+  - isOnline
+  - lastSeen
+
+### Convex Functions
+- `syncUser`: Creates or updates user in database
+- `getUserByClerkId`: Fetches user by Clerk ID
+- `getAllUsers`: Retrieves all users
+- `updateUserStatus`: Updates user online status
+
+## Design System
+
+The app uses a consistent design system:
+- **Primary Color**: Blue (600-700 range)
+- **Neutral Colors**: Slate (50-900 range)
+- **Typography**: Geist Sans font family
+- **Spacing**: Consistent padding and margins
+- **Components**: shadcn/ui for buttons, avatars, dropdowns
+
+## Next Steps
+
+To extend this application, consider adding:
+- Chat rooms/channels
+- Direct messaging
+- Message history
+- File uploads
+- User presence indicators
+- Typing indicators
+- Read receipts
+
+## Environment Variables
+
+The following environment variables are configured in `.env.local`:
+
+```env
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+CLERK_SECRET_KEY=your_clerk_secret_key
+CONVEX_DEPLOYMENT=your_convex_deployment_url
+NEXT_PUBLIC_CONVEX_URL=your_convex_url
+```
+
+## Troubleshooting
+
+### Convex Types Not Generated
+
+If you see TypeScript errors about missing Convex types, run:
+```bash
+npx convex dev
+```
+
+This will generate the necessary type definitions in `convex/_generated/`.
+
+### Authentication Issues
+
+Make sure your Clerk environment variables are correctly set in `.env.local` and match your Clerk dashboard settings.
+
+## License
+
+MIT
