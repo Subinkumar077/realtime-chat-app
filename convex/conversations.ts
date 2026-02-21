@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
 
 export const getOrCreateConversation = mutation({
   args: {
@@ -33,6 +32,8 @@ export const getOrCreateConversation = mutation({
       participant2,
       lastMessageTime: Date.now(),
       lastMessageText: undefined,
+      unreadCountUser1: 0,
+      unreadCountUser2: 0,
     });
 
     return conversationId;
@@ -68,10 +69,16 @@ export const getUserConversations = query({
       allConversations.map(async (conv) => {
         const otherUserId = conv.participant1 === userId ? conv.participant2 : conv.participant1;
         const otherUser = await ctx.db.get(otherUserId);
+        
+        // Determine unread count for current user (default to 0 if undefined)
+        const unreadCount = conv.participant1 === userId 
+          ? (conv.unreadCountUser1 ?? 0)
+          : (conv.unreadCountUser2 ?? 0);
 
         return {
           ...conv,
           otherUser,
+          unreadCount,
         };
       })
     );
@@ -86,5 +93,29 @@ export const getConversationById = query({
   },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.conversationId);
+  },
+});
+
+export const markConversationAsRead = mutation({
+  args: {
+    conversationId: v.id("conversations"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const { conversationId, userId } = args;
+
+    const conversation = await ctx.db.get(conversationId);
+    if (!conversation) return;
+
+    // Determine which user is reading and reset their unread count
+    if (conversation.participant1 === userId) {
+      await ctx.db.patch(conversationId, {
+        unreadCountUser1: 0,
+      });
+    } else if (conversation.participant2 === userId) {
+      await ctx.db.patch(conversationId, {
+        unreadCountUser2: 0,
+      });
+    }
   },
 });

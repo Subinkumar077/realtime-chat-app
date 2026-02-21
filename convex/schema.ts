@@ -16,6 +16,8 @@ export default defineSchema({
     participant2: v.id("users"),
     lastMessageTime: v.number(),
     lastMessageText: v.optional(v.string()),
+    unreadCountUser1: v.optional(v.number()),
+    unreadCountUser2: v.optional(v.number()),
   })
     .index("by_participant1", ["participant1"])
     .index("by_participant2", ["participant2"])
@@ -26,5 +28,24 @@ export default defineSchema({
     senderId: v.id("users"),
     text: v.string(),
     createdAt: v.number(),
+    isDeleted: v.optional(v.boolean()),
+    deletedAt: v.optional(v.number()),
+    deletedBy: v.optional(v.id("users")),
   }).index("by_conversation", ["conversationId", "createdAt"]),
+
+  reactions: defineTable({
+    messageId: v.id("messages"),
+    userId: v.id("users"),
+    emoji: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_message", ["messageId"])
+    .index("by_user_message", ["userId", "messageId"]),
+
+  typingIndicators: defineTable({
+    conversationId: v.id("conversations"),
+    userId: v.id("users"),
+    isTyping: v.boolean(),
+    lastTypingTime: v.number(),
+  }).index("by_conversation", ["conversationId"]),
 });
