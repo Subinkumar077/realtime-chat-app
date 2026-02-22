@@ -2,7 +2,13 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { UserPlus, MessageCircle } from "lucide-react";
+import { 
+  UserPlus, 
+  MessageCircle, 
+  Search, 
+  MessageSquarePlus, 
+  MoreVertical 
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ConversationListSkeleton } from "./ConversationListSkeleton";
 import { ErrorDisplay } from "@/components/ui/ErrorDisplay";
@@ -57,20 +63,33 @@ export function ConversationList({
 
   return (
     <>
-      {/* Find Users Button */}
-      <div className="p-4 border-b border-slate-200">
-        <Button
+      {/* WhatsApp Style Header & Search */}
+      <div className="flex flex-col gap-3 p-3 pt-4 border-b border-slate-200 bg-white">
+        {/* Top Branding & Icons Row */}
+        <div className="flex items-center justify-between px-1 mb-1">
+          <h1 className="text-[22px] font-bold text-[#25D366] tracking-tight">
+            Whisper
+          </h1>
+          
+        </div>
+
+        {/* Search Bar (Acts as the Find Users trigger) */}
+        <div
           onClick={onFindUsers}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+          className="flex items-center bg-[#f0f2f5] hover:bg-[#e9edf0] transition-colors rounded-lg px-4 py-2 cursor-pointer"
         >
-          <UserPlus className="w-4 h-4 mr-2" />
-          Find Users
-        </Button>
+          <Search className="w-4 h-4 text-slate-500 mr-3" />
+          <span className="text-sm text-slate-500 font-normal select-none">
+            Search or start a new chat
+          </span>
+        </div>
+
+        
       </div>
 
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto">
-        {/* Error state - show error display when query fails */}
+        {/* Error state */}
         {error ? (
           <div className="p-4">
             <ErrorDisplay
@@ -80,7 +99,7 @@ export function ConversationList({
               variant="inline"
             />
           </div>
-        ) : /* Loading state - show skeleton when data is undefined */
+        ) : /* Loading state */
         conversations === undefined ? (
           <ConversationListSkeleton />
         ) : conversations.length === 0 ? (
@@ -100,9 +119,9 @@ export function ConversationList({
                 <button
                   key={conv._id}
                   onClick={() => onConversationSelect(conv)}
-                  className={`w-full p-4 flex items-start gap-3 hover:bg-slate-50 transition-colors ${
+                  className={`w-full p-4 flex items-start gap-3 hover:bg-[#f5f6f6] transition-colors ${
                     selectedConversationId === conv._id
-                      ? "bg-blue-50 hover:bg-blue-50"
+                      ? "bg-[#f0f2f5] hover:bg-[#f0f2f5]"
                       : ""
                   }`}
                 >
@@ -122,7 +141,7 @@ export function ConversationList({
                     )}
                     {/* Unread count badge */}
                     {conv.unreadCount > 0 && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 text-white text-xs font-semibold rounded-full flex items-center justify-center">
+                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-[#25D366] text-white text-xs font-semibold rounded-full flex items-center justify-center">
                         {conv.unreadCount}
                       </div>
                     )}
