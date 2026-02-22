@@ -4,6 +4,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { UserPlus, MessageCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { ConversationListSkeleton } from "./ConversationListSkeleton";
+import { ErrorDisplay } from "@/components/ui/ErrorDisplay";
 
 interface User {
   _id: string;
@@ -24,10 +26,12 @@ interface Conversation {
 }
 
 interface ConversationListProps {
-  conversations: Conversation[];
+  conversations: Conversation[] | undefined;
   selectedConversationId: string | null;
   onConversationSelect: (conversation: Conversation) => void;
   onFindUsers: () => void;
+  error?: Error | null;
+  onRetry?: () => void;
 }
 
 export function ConversationList({
@@ -35,6 +39,8 @@ export function ConversationList({
   selectedConversationId,
   onConversationSelect,
   onFindUsers,
+  error,
+  onRetry,
 }: ConversationListProps) {
   const truncateText = (text: string, maxLength: number = 40) => {
     if (text.length <= maxLength) return text;
@@ -64,7 +70,20 @@ export function ConversationList({
 
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto">
-        {conversations.length === 0 ? (
+        {/* Error state - show error display when query fails */}
+        {error ? (
+          <div className="p-4">
+            <ErrorDisplay
+              type="service"
+              message="Failed to load conversations. Please try again."
+              onRetry={onRetry}
+              variant="inline"
+            />
+          </div>
+        ) : /* Loading state - show skeleton when data is undefined */
+        conversations === undefined ? (
+          <ConversationListSkeleton />
+        ) : conversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8">
             <MessageCircle className="w-12 h-12 text-slate-300 mb-3" />
             <p className="text-slate-500 font-medium">No conversations yet</p>

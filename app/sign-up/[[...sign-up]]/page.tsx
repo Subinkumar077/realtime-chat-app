@@ -3,24 +3,23 @@ import { MessageCircle } from "lucide-react";
 
 export default function SignUpPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-slate-100 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-grid-slate-200/50 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.5))] -z-10" />
+    <div className="min-h-screen bg-[#FCF5EB] flex items-center justify-center p-4 relative overflow-hidden font-sans">
+      {/* Background Decorative Circle */}
+      <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] border-[40px] border-white/40 rounded-full -z-0 opacity-50" />
       
-      <div className="w-full max-w-md relative">
+      <div className="w-full max-w-md relative z-10">
         {/* Logo/Branding */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-600/20">
-            <MessageCircle className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Create Account</h1>
-          <p className="text-slate-600">Sign up to get started with Realtime Chat</p>
+          
+          
+          <h1 className="text-3xl font-bold text-[#1C3B33] mb-2">Get Started</h1>
+          <p className="text-[#5E5E5E]">Create your account to start chatting</p>
         </div>
 
         {/* Clerk Sign Up Component */}
-        <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-200/50 p-1">
+        <div className="">
           <SignUp 
-            forceRedirectUrl="/dashboard"
+            forceRedirectUrl="/users"
             signInUrl="/sign-in"
             appearance={{
               elements: {
@@ -29,17 +28,16 @@ export default function SignUpPage() {
                 headerTitle: "hidden",
                 headerSubtitle: "hidden",
                 socialButtonsBlockButton: "border-slate-200 hover:bg-slate-50",
-                formButtonPrimary: "bg-blue-600 hover:bg-blue-700",
-                footerActionLink: "text-blue-600 hover:text-blue-700",
+                // Updated to match your landing page green
+                formButtonPrimary: "bg-[#25D366] hover:bg-[#20bd5b] text-white",
+                footerActionLink: "text-[#25D366] hover:text-[#1C3B33]",
+                formFieldInput: "focus:border-[#25D366] focus:ring-[#25D366]/20",
               }
             }}
           />
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-sm text-slate-500 mt-6">
-          Secure authentication powered by Clerk
-        </p>
+        
       </div>
     </div>
   );

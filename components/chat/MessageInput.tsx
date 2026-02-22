@@ -5,6 +5,7 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Send } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
 
@@ -12,9 +13,10 @@ interface MessageInputProps {
   conversationId: Id<"conversations">;
   senderId: Id<"users">;
   onMessageSent?: () => void;
+  onSendMessage?: (text: string) => Promise<void>;
 }
 
-export function MessageInput({ conversationId, senderId, onMessageSent }: MessageInputProps) {
+export function MessageInput({ conversationId, senderId, onMessageSent, onSendMessage }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -71,16 +73,26 @@ export function MessageInput({ conversationId, senderId, onMessageSent }: Messag
     });
 
     setIsSending(true);
+    setMessage(""); // Clear input immediately for better UX
+    
     try {
-      await sendMessage({
-        conversationId,
-        senderId,
-        text: trimmedMessage,
-      });
-      setMessage("");
+      // Use optimistic send handler if provided, otherwise use direct mutation
+      if (onSendMessage) {
+        await onSendMessage(trimmedMessage);
+      } else {
+        await sendMessage({
+          conversationId,
+          senderId,
+          text: trimmedMessage,
+        });
+      }
       onMessageSent?.();
     } catch (error) {
       console.error("Failed to send message:", error);
+      // Restore message text on error if not using optimistic updates
+      if (!onSendMessage) {
+        setMessage(trimmedMessage);
+      }
     } finally {
       setIsSending(false);
     }
@@ -118,6 +130,7 @@ export function MessageInput({ conversationId, senderId, onMessageSent }: Messag
           placeholder="Type a message..."
           className="min-h-[40px] max-h-24 resize-none"
           rows={1}
+          disabled={isSending}
         />
         <Button
           onClick={handleSend}
@@ -125,7 +138,11 @@ export function MessageInput({ conversationId, senderId, onMessageSent }: Messag
           size="icon"
           className="flex-shrink-0 h-10 w-10"
         >
-          <Send className="w-4 h-4" />
+          {isSending ? (
+            <LoadingSpinner size="sm" variant="white" label="Sending message" />
+          ) : (
+            <Send className="w-4 h-4" />
+          )}
         </Button>
       </div>
       <p className="text-xs text-slate-400 mt-2">

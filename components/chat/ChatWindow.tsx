@@ -10,8 +10,12 @@ import { MessageBubble } from "./MessageBubble";
 import { MessageInput } from "./MessageInput";
 import { DateSeparator } from "./DateSeparator";
 import { TypingIndicator } from "./TypingIndicator";
+import { MessageListSkeleton } from "./MessageListSkeleton";
+import { ErrorDisplay } from "@/components/ui/ErrorDisplay";
 import { shouldShowDateSeparator } from "@/lib/utils";
 import { Id } from "@/convex/_generated/dataModel";
+import { Message } from "@/types/message";
+import { classifyError, getErrorMessage } from "@/lib/errorHandling";
 
 interface User {
   _id: string;
@@ -33,16 +37,28 @@ export function ChatWindow({ selectedUser, currentUserId, conversationId: propCo
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const getOrCreateConversation = useMutation(api.conversations.getOrCreateConversation);
   const markConversationAsRead = useMutation(api.conversations.markConversationAsRead);
+  const sendMessageMutation = useMutation(api.messages.sendMessage);
   const [conversationId, setConversationId] = useState<Id<"conversations"> | null>(propConversationId);
   const [isLoadingConversation, setIsLoadingConversation] = useState(!propConversationId);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [newMessageCount, setNewMessageCount] = useState(0);
   const previousMessageCountRef = useRef(0);
+  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
+  const [messageQueryError, setMessageQueryError] = useState<Error | null>(null);
 
-  const messages = useQuery(
+  const messagesFromDb = useQuery(
     api.messages.getMessages,
     conversationId ? { conversationId } : "skip"
   );
+
+  // Combine database messages with optimistic messages
+  const messages: Message[] = [
+    ...(messagesFromDb?.map(msg => ({
+      ...msg,
+      status: 'sent' as const,
+    })) || []),
+    ...optimisticMessages,
+  ];
 
   const typingUsers = useQuery(
     api.typing.getTypingUsers,
@@ -51,6 +67,108 @@ export function ChatWindow({ selectedUser, currentUserId, conversationId: propCo
 
   // Filter out current user from typing users
   const otherUserTyping = typingUsers?.find((user) => user.userId !== currentUserId);
+
+  // Generate unique ID for optimistic messages
+  const generateLocalId = () => `local-${Date.now()}-${Math.random()}`;
+
+  // Handle retry for message query errors
+  const handleRetryMessageQuery = () => {
+    setMessageQueryError(null);
+    // The query will automatically retry when the component re-renders
+  };
+
+  // Handle sending message with optimistic updates
+  const handleSendMessage = async (text: string) => {
+    if (!conversationId) return;
+
+    const localId = generateLocalId();
+    const optimisticMessage: Message = {
+      _id: localId as Id<"messages">,
+      localId,
+      conversationId,
+      senderId: currentUserId,
+      text,
+      createdAt: Date.now(),
+      status: 'sending',
+    };
+
+    // Add optimistic message immediately
+    setOptimisticMessages((prev) => [...prev, optimisticMessage]);
+
+    try {
+      // Send to backend
+      const messageId = await sendMessageMutation({
+        conversationId,
+        senderId: currentUserId,
+        text,
+      });
+
+      // Remove optimistic message (real message will come from subscription)
+      setOptimisticMessages((prev) => prev.filter((msg) => msg.localId !== localId));
+    } catch (error) {
+      // Mark message as failed with error details
+      const errorType = classifyError(error);
+      setOptimisticMessages((prev) =>
+        prev.map((msg) =>
+          msg.localId === localId
+            ? {
+                ...msg,
+                status: 'failed' as const,
+                error: {
+                  type: errorType,
+                  message: getErrorMessage(errorType),
+                  timestamp: Date.now(),
+                },
+              }
+            : msg
+        )
+      );
+    }
+  };
+
+  // Handle retry for failed messages
+  const handleRetryMessage = async (message: Message) => {
+    if (!message.localId || !conversationId) return;
+
+    // Clear error state and set to sending
+    setOptimisticMessages((prev) =>
+      prev.map((msg) =>
+        msg.localId === message.localId
+          ? { ...msg, status: 'sending' as const, error: undefined }
+          : msg
+      )
+    );
+
+    try {
+      // Attempt to send again
+      const messageId = await sendMessageMutation({
+        conversationId,
+        senderId: currentUserId,
+        text: message.text,
+      });
+
+      // Remove optimistic message on success
+      setOptimisticMessages((prev) => prev.filter((msg) => msg.localId !== message.localId));
+    } catch (error) {
+      // Update error state if retry fails
+      const errorType = classifyError(error);
+      setOptimisticMessages((prev) =>
+        prev.map((msg) =>
+          msg.localId === message.localId
+            ? {
+                ...msg,
+                status: 'failed' as const,
+                error: {
+                  type: errorType,
+                  message: getErrorMessage(errorType),
+                  timestamp: Date.now(),
+                },
+              }
+            : msg
+        )
+      );
+    }
+  };
 
   // Check if user is at bottom of scroll
   const checkIfAtBottom = () => {
@@ -193,10 +311,17 @@ export function ChatWindow({ selectedUser, currentUserId, conversationId: propCo
           <div className="flex items-center justify-center h-full">
             <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
           </div>
-        ) : messages === undefined ? (
-          <div className="flex items-center justify-center h-full">
-            <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
+        ) : messageQueryError ? (
+          <div className="flex items-center justify-center h-full p-4">
+            <ErrorDisplay
+              type={classifyError(messageQueryError)}
+              message={getErrorMessage(classifyError(messageQueryError))}
+              onRetry={handleRetryMessageQuery}
+              variant="inline"
+            />
           </div>
+        ) : messagesFromDb === undefined ? (
+          <MessageListSkeleton count={8} variant="mixed" />
         ) : messages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-center">
             <div>
@@ -220,13 +345,14 @@ export function ChatWindow({ selectedUser, currentUserId, conversationId: propCo
                   messages[index + 1].senderId !== msg.senderId);
 
               return (
-                <div key={msg._id}>
+                <div key={msg.localId || msg._id}>
                   {showDateSep && <DateSeparator timestamp={msg.createdAt} />}
                   <MessageBubble
                     message={msg}
                     isCurrentUser={isCurrentUser}
                     showAvatar={showAvatar}
                     currentUserId={currentUserId}
+                    onRetry={msg.status === 'failed' ? () => handleRetryMessage(msg) : undefined}
                   />
 
                 </div>
@@ -257,6 +383,7 @@ export function ChatWindow({ selectedUser, currentUserId, conversationId: propCo
           conversationId={conversationId}
           senderId={currentUserId}
           onMessageSent={handleMessageSent}
+          onSendMessage={handleSendMessage}
         />
       )}
     </>

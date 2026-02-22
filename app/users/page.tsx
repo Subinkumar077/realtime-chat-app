@@ -150,7 +150,7 @@ export default function UsersPage() {
     <div className="h-screen flex flex-col bg-white">
       <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard">
+          <Link href="/">
             <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
